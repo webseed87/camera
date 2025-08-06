@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="../assets/css/reset.css">
+    <link rel="stylesheet" type="text/css" href="../assets/css/common.css">
+    <link rel="stylesheet" type="text/css" href="../assets/css/camera.css">
+    <script src="../assets/js/jquery-ui.js"></script>
+    <script type="text/javascript" src="../assets/js/common.js"></script>
+</head>
+
+<body>
+    <div class="camera_warp">
+
+        <div class="shot_area" id="captureArea">
+            <video id="video" autoplay="{true}" playsinline="{true}" muted="{true}" style="display: none;"></video>
+            <canvas id="canvas"></canvas>
+            <canvas id="canvas_raw"></canvas>
+            <canvas id="canvas_thumb"></canvas>
+
+            <div id="guideImg" style="display: none;">
+                <img id="guide" src="../assets/img/transparent.png">
+            </div>
+
+        </div>
+        <div id="controlWrap" class="control-wrap">
+            <div class="bright">
+                <div class="bright_rotate">
+                    <a href="javascript:;" class="all_center_box" id="btn_brightnessUp"><img
+                            src="../assets/images/common/brightplus.png" alt="밝기증가"></a>
+                    <a href="javascript:;" class="all_center_box" id="btn_brightnessDown"><img
+                            src="../assets/images/common/brightminus.png" alt="밝기감소"></a>
+                </div>
+            </div>
+            <div class="space_box">
+                <div class="space_box_rotate">
+                    <button type="button" class="blue" id="btn_selGuide" onclick="openPopup()">
+                        <p>가이드선택</p>
+                    </button>
+                    <button type="button" class="blue" id="btn_switchCamera" onclick="switchCamera()">
+                        <p>카메라전환</p>
+                    </button>
+                    <button class="camera_button" id="captureBtn" onclick="capturePhoto()"><img
+                        src="../assets/images/common/camera.png" alt="촬영"></button>
+                    <button type="button" class="dark_gray " id="btn_calEst">
+                        <p>견적내기</p>
+                    </button>
+                    <button type="button" class="dark_gray " id="btn_photoList">
+                        <p>사진목록</p>
+                    </button>
+                    <button type="button" class="dark_gray " id="btn_cancel">
+                        <p>촬영취소</p>
+                    </button>
+
+                </div>
+            </div>
+
+
+        </div>
+        <div id="overlay"></div>
+        <!-- 팝업 추가-->
+        <div class="guide_popup" id="popup">
+            <span id="closeBtn" onclick="closePopup()"></span>
+            <div class="development_figure"> 
+                전개도 이미지
+            </div>
+    
+        </div>
+    </div>
+
+
+    <script>
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
+        window.addEventListener("resize", () => {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty("--vh", `${vh}px`);
+        });
+    </script>
+
+
+<script>
+    function openPopup() {
+      document.getElementById('popup').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    }
+
+    function closePopup() {
+      document.getElementById('popup').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    }
+  </script>
+
+  <!-- 카메라 기능 스크립트 -->
+  <script>
+    let stream = null;
+    let capturedImages = [];
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const canvasRaw = document.getElementById('canvas_raw');
+    const canvasThumb = document.getElementById('canvas_thumb');
+    const ctx = canvas.getContext('2d');
+    const ctxRaw = canvasRaw.getContext('2d');
+    const ctxThumb = canvasThumb.getContext('2d');
+
+    // 페이지 로드 시 카메라 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      initCamera();
+    });
+
+    // 카메라 초기화
+    async function initCamera() {
+      try {
+        // 카메라 권한 요청 및 스트림 가져오기
+        const constraints = {
+          video: {
+            facingMode: 'environment', // 후면 카메라 우선 (모바일)
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        video.style.display = 'block';
+
+        // 비디오가 로드되면 캔버스 크기 설정
+        video.addEventListener('loadedmetadata', function() {
+          resizeCanvas();
+        });
+
+        // 화면 방향 변경시 캔버스 크기 재조정
+        window.addEventListener('orientationchange', function() {
+          setTimeout(resizeCanvas, 100);
+        });
+
+      } catch (error) {
+        console.error('카메라 접근 오류:', error);
+        alert('카메라에 접근할 수 없습니다. 카메라 권한을 확인해주세요.');
+        
+        // 후면 카메라가 없는 경우 전면 카메라 시도
+        if (error.name === 'OverconstrainedError') {
+          try {
+            const fallbackConstraints = {
+              video: {
+                facingMode: 'user', // 전면 카메라
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              },
+              audio: false
+            };
+            stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+            video.srcObject = stream;
+            video.style.display = 'block';
+          } catch (fallbackError) {
+            console.error('전면 카메라 접근 오류:', fallbackError);
+          }
+        }
+      }
+    }
+
+    // 캔버스 크기 조정
+    function resizeCanvas() {
+      if (video.videoWidth && video.videoHeight) {
+        const aspectRatio = video.videoWidth / video.videoHeight;
+        const containerWidth = document.querySelector('.shot_area').clientWidth;
+        const containerHeight = document.querySelector('.shot_area').clientHeight;
+        
+        let canvasWidth, canvasHeight;
+        
+        if (containerWidth / containerHeight > aspectRatio) {
+          canvasHeight = containerHeight;
+          canvasWidth = canvasHeight * aspectRatio;
+        } else {
+          canvasWidth = containerWidth;
+          canvasHeight = canvasWidth / aspectRatio;
+        }
+
+        // 모든 캔버스 크기 설정
+        [canvas, canvasRaw, canvasThumb].forEach(c => {
+          c.width = canvasWidth;
+          c.height = canvasHeight;
+          c.style.width = canvasWidth + 'px';
+          c.style.height = canvasHeight + 'px';
+        });
+
+        // 썸네일 캔버스는 작게 설정
+        canvasThumb.width = 200;
+        canvasThumb.height = 200 / aspectRatio;
+      }
+    }
+
+    // 사진 촬영
+    function capturePhoto() {
+      if (!video.videoWidth || !video.videoHeight) {
+        alert('카메라가 준비되지 않았습니다.');
+        return;
+      }
+
+      try {
+        // 원본 해상도로 캡처
+        canvasRaw.width = video.videoWidth;
+        canvasRaw.height = video.videoHeight;
+        ctxRaw.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        // 화면 표시용 캡처
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 썸네일 생성
+        ctxThumb.drawImage(video, 0, 0, canvasThumb.width, canvasThumb.height);
+
+        // 이미지 데이터 저장
+        const imageData = canvasRaw.toDataURL('image/jpeg', 0.9);
+        const thumbData = canvasThumb.toDataURL('image/jpeg', 0.7);
+        
+        const captureInfo = {
+          id: Date.now(),
+          timestamp: new Date().toLocaleString(),
+          fullImage: imageData,
+          thumbnail: thumbData
+        };
+
+        capturedImages.push(captureInfo);
+        
+        // 촬영 효과 (화면 깜빡임)
+        showCaptureEffect();
+        
+        // 성공 메시지
+        console.log('사진이 촬영되었습니다:', captureInfo.timestamp);
+        
+        // 로컬 스토리지에 저장 (선택사항)
+        localStorage.setItem('capturedImages', JSON.stringify(capturedImages));
+        
+      } catch (error) {
+        console.error('촬영 오류:', error);
+        alert('사진 촬영 중 오류가 발생했습니다.');
+      }
+    }
+
+    // 촬영 효과
+    function showCaptureEffect() {
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.backgroundColor = 'white';
+      overlay.style.opacity = '0.8';
+      overlay.style.zIndex = '9999';
+      overlay.style.pointerEvents = 'none';
+      
+      document.body.appendChild(overlay);
+      
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 150);
+    }
+
+    // 카메라 전환 (전면/후면)
+    function switchCamera() {
+      if (stream) {
+        const tracks = stream.getVideoTracks();
+        if (tracks.length > 0) {
+          const currentFacingMode = tracks[0].getSettings().facingMode;
+          const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+          
+          tracks.forEach(track => track.stop());
+          
+          const constraints = {
+            video: {
+              facingMode: newFacingMode,
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          };
+          
+          navigator.mediaDevices.getUserMedia(constraints)
+            .then(newStream => {
+              stream = newStream;
+              video.srcObject = stream;
+            })
+            .catch(error => {
+              console.error('카메라 전환 오류:', error);
+              // 원래 카메라로 복구
+              initCamera();
+            });
+        }
+      }
+    }
+
+    // 밝기 조절
+    function adjustBrightness(delta) {
+      const currentFilter = video.style.filter || '';
+      const brightnessMatch = currentFilter.match(/brightness\(([^)]+)\)/);
+      let currentBrightness = brightnessMatch ? parseFloat(brightnessMatch[1]) : 1;
+      
+      currentBrightness = Math.max(0.3, Math.min(2, currentBrightness + delta));
+      video.style.filter = currentFilter.replace(/brightness\([^)]+\)/, '') + ` brightness(${currentBrightness})`;
+    }
+
+    // 밝기 버튼 이벤트
+    document.getElementById('btn_brightnessUp').addEventListener('click', () => adjustBrightness(0.1));
+    document.getElementById('btn_brightnessDown').addEventListener('click', () => adjustBrightness(-0.1));
+
+    // 사진 목록 보기
+    document.getElementById('btn_photoList').addEventListener('click', function() {
+      if (capturedImages.length === 0) {
+        alert('촬영된 사진이 없습니다.');
+        return;
+      }
+      
+      showPhotoList();
+    });
+
+    // 사진 목록 표시
+    function showPhotoList() {
+      const listHtml = capturedImages.map((img, index) => `
+        <div style="margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+          <img src="${img.thumbnail}" style="width: 100px; height: auto; margin-right: 10px;">
+          <div>
+            <p>촬영시간: ${img.timestamp}</p>
+            <button onclick="downloadImage(${index})" style="margin: 5px; padding: 5px 10px;">다운로드</button>
+            <button onclick="deleteImage(${index})" style="margin: 5px; padding: 5px 10px;">삭제</button>
+          </div>
+        </div>
+      `).join('');
+      
+      const popup = document.createElement('div');
+      popup.style.position = 'fixed';
+      popup.style.top = '10%';
+      popup.style.left = '10%';
+      popup.style.width = '80%';
+      popup.style.height = '80%';
+      popup.style.backgroundColor = 'white';
+      popup.style.border = '2px solid #333';
+      popup.style.borderRadius = '10px';
+      popup.style.zIndex = '10000';
+      popup.style.overflow = 'auto';
+      popup.style.padding = '20px';
+      
+      popup.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>촬영된 사진 목록 (${capturedImages.length}장)</h3>
+          <button onclick="this.parentElement.parentElement.remove()" style="padding: 5px 15px; font-size: 16px;">닫기</button>
+        </div>
+        <div>${listHtml}</div>
+      `;
+      
+      document.body.appendChild(popup);
+    }
+
+    // 이미지 다운로드
+    function downloadImage(index) {
+      const img = capturedImages[index];
+      const link = document.createElement('a');
+      link.download = `photo_${img.id}.jpg`;
+      link.href = img.fullImage;
+      link.click();
+    }
+
+    // 이미지 삭제
+    function deleteImage(index) {
+      if (confirm('이 사진을 삭제하시겠습니까?')) {
+        capturedImages.splice(index, 1);
+        localStorage.setItem('capturedImages', JSON.stringify(capturedImages));
+        // 팝업 새로고침
+        document.querySelector('div[style*="position: fixed"]').remove();
+        showPhotoList();
+      }
+    }
+
+    // 촬영 취소 (카메라 중지)
+    document.getElementById('btn_cancel').addEventListener('click', function() {
+      if (confirm('촬영을 취소하시겠습니까?')) {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          video.style.display = 'none';
+        }
+      }
+    });
+
+    // 페이지 언로드시 카메라 스트림 정리
+    window.addEventListener('beforeunload', function() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    // 로컬 스토리지에서 이전 촬영 이미지 복원
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedImages = localStorage.getItem('capturedImages');
+      if (savedImages) {
+        try {
+          capturedImages = JSON.parse(savedImages);
+        } catch (error) {
+          console.error('저장된 이미지 복원 오류:', error);
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

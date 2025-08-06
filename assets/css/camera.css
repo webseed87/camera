@@ -1,0 +1,383 @@
+.camera_warp {
+display: flex;
+width: 100%;
+height: calc(var(--vh, 1vh) * 100);
+--height: calc(var(--vh, 1vh) * 100);
+flex-wrap: wrap;
+overflow: hidden;
+background: #000;
+align-items: center;
+justify-content: center;
+position: relative;
+}
+.camera_warp .shot_area {
+position: relative;
+height: calc(100vw / 3 * 4);
+box-sizing: border-box;
+background-color: #CCC;
+width: 100vw;
+overflow: hidden;
+}
+.camera_warp .control-wrap {
+height: calc(var(--height) - (100vw / 3 * 4));
+background-color: #000;
+display: flex;
+justify-content: space-between;
+flex-wrap: wrap;
+box-sizing: border-box;
+width: 100%;
+align-items: center;
+overflow: hidden;
+}
+.camera_warp .control-wrap .bright {
+position: relative;
+top: 10px;
+width: 100vw;
+}
+.camera_warp .control-wrap .bright .bright_rotate {
+display: flex;
+flex-direction: row;
+justify-content: center;
+}
+.camera_warp .control-wrap .bright .bright_rotate a {
+width: 50px;
+height: 50px;
+border-radius: 100%;
+background: #2e2e2e;
+border: 1px solid #707070;
+display: inline-block;
+padding: 5px;
+box-sizing: border-box;
+transform: rotate(90deg);
+}
+.camera_warp .control-wrap .bright .bright_rotate a:last-child {
+margin-left: 30px;
+}
+.camera_warp .control-wrap .bright .bright_rotate a img {
+width: 100%;
+height: auto;
+}
+.camera_warp .control-wrap .space_box {
+height: 100px;
+width: 100vw;
+position: relative;
+box-sizing: border-box;
+display: flex;
+justify-content: center;
+}
+.camera_warp .control-wrap .space_box .space_box_rotate {
+display: flex;
+flex-direction: column;
+box-sizing: border-box;
+justify-content: center;
+padding-right: 10px;
+align-items: center;
+transform: rotate(90deg);
+}
+.camera_warp .control-wrap .space_box .dark_gray {
+color: #fff;
+background: #3b3b3b;
+border: 1px solid #7d7d7d;
+padding: 6px 10px;
+font-size: 14px;
+border-radius: 4px;
+margin-top: 5px;
+}
+.camera_warp .control-wrap .space_box .blue {
+color: #fff;
+background: #4797ee;
+padding: 6px 10px;
+font-size: 14px;
+border-radius: 4px;
+margin-top: 5px;
+}
+/* 2024-02-06  팝업 추가 */
+.camera_warp .control-wrap .camera_button{
+background-color: #FE9800;
+align-items: center;
+display: flex;
+border-radius: 50%;
+justify-content: center;
+width: 60px;
+height: 60px;
+padding: 20px ;
+margin: calc(var(--vh, 1vh) * 5) 0;
+}
+.camera_warp  #popup {
+display: none;
+position: fixed;
+top:  calc(var(--height) - 550px);
+left: 50%;
+transform: translate(-50%, 0%) rotate(90deg);
+padding: 20px;
+background-color: #fff;
+border-radius: 10px;
+z-index: 999;
+width: 320px;
+height: 300px;
+}
+.camera_warp #popup .development_figure{
+display: flex;
+justify-content: center;
+margin-top: 20px;
+}
+.camera_warp  #overlay {
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.5);
+z-index: 998;
+}
+
+.camera_warp  #closeBtn {
+position: absolute;
+top: 20px;
+right: 20px;
+cursor: pointer;
+}
+
+.camera_warp  #closeBtn::after{
+content: "";
+position: absolute;
+width: 1px;
+height: 15px;
+background-color: #666;
+transform: rotate(45deg);
+}
+.camera_warp  #closeBtn::before{
+content: "";
+position: absolute;
+width: 1px;
+height: 15px;
+background-color: #666;
+transform: rotate(-45deg);
+}
+/* 일반적인 핸드폰 가로보다 클때 비율 조절  */
+@media (min-width:432px) and (orientation:portrait) {
+.camera_warp .control-wrap {
+height: calc(var(--height) - (50vw / 3 * 4));
+}
+.camera_warp .shot_area {
+height: calc(50vw / 3 * 4);
+margin: 0 25vw;
+}
+}
+/* 주소창으로 인해 높이가 작을때 비율 조절 */
+@media (max-width:431px) and (max-height:784px) and (orientation: portrait) {
+.camera_warp .shot_area {
+height: calc(90vw / 3 * 4);
+width: 90vw;
+}
+.camera_warp .control-wrap {
+height: calc(var(--height) - (90vw / 3 * 4));
+}
+}
+/* 해상도 작을 때 비율조절 */
+@media (max-width: 376px) {
+.camera_warp .control-wrap .bright a {
+width: 40px;
+height: 40px;
+}
+.camera_warp .control-wrap {
+height: calc(var(--height) - (80vw / 3 * 4));
+}
+.camera_warp .shot_area {
+height: calc(80vw / 3 * 4);
+margin: 0 8vw;
+}
+.camera_warp .control-wrap .space_box {
+top: 0;
+}
+}
+@media (max-width: 320px) {
+.camera_warp .shot_area {
+height: calc(90vw / 3 * 4);
+margin: 0 0;
+}
+/* 2024-02-06  팝업 추가 */
+.camera_warp  #popup {
+    display: none;
+    position: fixed;
+    top:  calc(var(--height) - 360px);
+    left: 50%;
+    transform: translate(-50%, 0%) rotate(90deg);
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    z-index: 999;
+    width: 220px;
+    height: 200px;
+    }
+}
+/* 태블릿 화면 비율 조절 */
+@media (min-width:768px) and (orientation:portrait) {
+.camera_warp .control-wrap {
+height: calc(var(--height) - (70vw / 3 * 4));
+}
+.camera_warp .shot_area {
+height: calc(70vw / 3 * 4);
+margin: 0 15vw;
+}
+}
+/*================= 가로모드일때 ================= */
+@media (orientation: landscape) {
+.camera_warp {
+display: flex;
+width: 100vw;
+overflow: hidden;
+}
+.camera_warp .shot_area {
+position: relative;
+width: calc(var(--height) / 3 * 4);
+box-sizing: border-box;
+background-color: #CCC;
+height: var(--height);
+}
+.camera_warp .control-wrap {
+width: calc(100vw - (var(--height) / 3 * 4));
+background-color: #000;
+display: flex;
+justify-content: space-between;
+flex-wrap: wrap;
+box-sizing: border-box;
+height: var(--height);
+}
+.camera_warp .control-wrap .bright {
+display: flex;
+height: var(--height);
+width: 50px;
+align-items: center;
+margin-left: 10px;
+}
+.camera_warp .control-wrap .bright .bright_rotate {
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+.camera_warp .control-wrap .bright .bright_rotate a {
+width: 50px;
+height: 50px;
+border-radius: 100%;
+background: #2e2e2e;
+border: 1px solid #707070;
+display: inline-block;
+padding: 5px;
+box-sizing: border-box;
+transform: rotate(0deg);
+}
+.camera_warp .control-wrap .bright .bright_rotate a:last-child {
+margin-top: 30px;
+margin-left: 0;
+}
+.camera_warp .control-wrap .bright .bright_rotate a img {
+width: 100%;
+height: auto;
+}
+.camera_warp .control-wrap .space_box {
+width: 50%;
+position: relative;
+height: var(--height);
+box-sizing: border-box;
+align-items: center;
+}
+.camera_warp .control-wrap .space_box .space_box_rotate {
+display: flex;
+flex-direction: column;
+box-sizing: border-box;
+justify-content: flex-start;
+padding-right: 10px;
+align-items: center;
+transform: rotate(0deg);
+}
+.camera_warp .control-wrap .space_box .dark_gray {
+color: #fff;
+background: #3b3b3b;
+border: 1px solid #7d7d7d;
+padding: 6px 10px;
+font-size: 14px;
+border-radius: 4px;
+margin-top: 5px;
+}
+.camera_warp .control-wrap .space_box .blue {
+color: #fff;
+background: #4797ee;
+padding: 6px 10px;
+font-size: 14px;
+border-radius: 4px;
+margin-top: 5px;
+
+}
+.camera_warp  #popup {
+display: none;
+position: fixed;
+top: 50% ;
+right:0px;
+transform: translate(-30%, -50%) ;
+padding: 20px;
+background-color: #fff;
+border-radius: 10px;
+z-index: 999;
+width: 320px;
+height: 300px;
+}
+/* 태블릿 사이즈일 때 비율 조절  */ 
+@media (min-height:700px) {
+.camera_warp .control-wrap {
+width: calc(100vw - ((var(--vh) * 70) / 3 * 4));
+height: var(--height)
+}
+.camera_warp .shot_area {
+width: calc((var(--vh) * 70)/ 3 * 4);
+height: calc(var(--vh) * 70);
+margin: calc(var(--vh) * 15) 0;
+}
+}
+
+/* 일반적인 핸드폰 가로보다 클때 비율 조절  */
+@media (min-height:500px) and (max-height:699px){
+.camera_warp .control-wrap {
+width: calc(100vw - ((var(--vh) * 50) / 3 * 4));
+height: var(--height)
+}
+.camera_warp .shot_area {
+width: calc((var(--vh) * 50)/ 3 * 4);
+height: calc(var(--vh) * 50);
+margin: calc(var(--vh) * 25) 0;
+}
+}
+/* 해상도 376 이하일때 비율조절 */
+@media (max-width: 588px) {
+.camera_warp .control-wrap .space_box .dark_gray,
+.camera_warp .control-wrap .space_box .blue {
+padding: 4px 5px;
+}
+.camera_warp .control-wrap .bright a {
+width: 40px;
+height: 40px;
+}
+.camera_warp .control-wrap {
+width: calc(100vw - ((var(--vh) * 90) / 3 * 4));
+}
+.camera_warp .shot_area {
+width: calc((var(--vh) * 90)/ 3 * 4);
+height: calc(var(--vh) * 90);
+padding: (var(--vh) * 5) 0;
+}
+.camera_warp .control-wrap .bright .bright_rotate {
+margin-left: 20px;
+}
+
+
+}
+/* 높이가 작을 때 비율 조절 */
+@media (max-height:340px){
+    .camera_warp  #popup {
+        width: calc( var(--height) - 60px);
+        height: calc( var(--height) - 80px);
+        }
+}
+
+}
