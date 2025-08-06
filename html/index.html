@@ -18,7 +18,7 @@
     <div class="camera_warp">
 
         <div class="shot_area" id="captureArea">
-            <video id="video" autoplay="{true}" playsinline="{true}" muted="{true}" style="display: none;"></video>
+            <video id="video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform-origin: center;"></video>
             <canvas id="canvas"></canvas>
             <canvas id="canvas_raw"></canvas>
             <canvas id="canvas_thumb"></canvas>
@@ -44,6 +44,12 @@
                     </button>
                     <button type="button" class="blue" id="btn_switchCamera" onclick="switchCamera()">
                         <p>카메라전환</p>
+                    </button>
+                    <button type="button" class="blue" id="btn_zoomIn" onclick="zoomIn()">
+                        <p>줌인</p>
+                    </button>
+                    <button type="button" class="blue" id="btn_zoomOut" onclick="zoomOut()">
+                        <p>줌아웃</p>
                     </button>
                     <button class="camera_button" id="captureBtn" onclick="capturePhoto()"><img
                         src="../assets/images/common/camera.png" alt="촬영"></button>
@@ -111,33 +117,106 @@
     // 페이지 로드 시 카메라 초기화
     document.addEventListener('DOMContentLoaded', function() {
       initCamera();
+      initTouchControls();
     });
+
+    // 터치 제어 초기화
+    function initTouchControls() {
+      const video = document.getElementById('video');
+      let initialDistance = 0;
+      let initialZoom = 1;
+
+      // 핀치 줌 시작
+      video.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          initialDistance = Math.hypot(
+            touch1.clientX - touch2.clientX,
+            touch1.clientY - touch2.clientY
+          );
+          initialZoom = currentZoom;
+        }
+      });
+
+      // 핀치 줌 중
+      video.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          const currentDistance = Math.hypot(
+            touch1.clientX - touch2.clientX,
+            touch1.clientY - touch2.clientY
+          );
+
+          if (initialDistance > 0) {
+            const scale = currentDistance / initialDistance;
+            const newZoom = initialZoom * scale;
+            currentZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+            applyZoom();
+          }
+        }
+      });
+
+      // 더블 탭으로 줌 토글
+      let lastTap = 0;
+      video.addEventListener('touchend', function(e) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 500 && tapLength > 0 && e.touches.length === 0) {
+          e.preventDefault();
+          // 더블 탭: 줌 토글 (1x <-> 2x)
+          currentZoom = currentZoom === 1 ? 2 : 1;
+          applyZoom();
+        }
+        lastTap = currentTime;
+      });
+    }
 
     // 카메라 초기화
     async function initCamera() {
       try {
-        // 카메라 권한 요청 및 스트림 가져오기
+        // 카메라 권한 요청 및 스트림 가져오기 (갤럭시 카메라 수준의 고화질)
         const constraints = {
           video: {
             facingMode: 'environment', // 후면 카메라 우선 (모바일)
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: 3840, min: 1920 }, // 4K 우선, 최소 FHD
+            height: { ideal: 2160, min: 1080 },
+            frameRate: { ideal: 30, min: 15 }, // 부드러운 프레임률
+            aspectRatio: { ideal: 16/9 } // 갤럭시 카메라 비율
           },
           audio: false
         };
 
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
-        video.style.display = 'block';
+        
+        // 비디오 로드 후 실제 해상도 정보 출력
+        video.addEventListener('loadedmetadata', function() {
+          console.log(`카메라 해상도: ${video.videoWidth}x${video.videoHeight}`);
+          console.log(`디스플레이 크기: ${video.clientWidth}x${video.clientHeight}`);
+          adjustVideoDisplay();
+        });
 
         // 비디오가 로드되면 캔버스 크기 설정
         video.addEventListener('loadedmetadata', function() {
           resizeCanvas();
         });
 
-        // 화면 방향 변경시 캔버스 크기 재조정
+        // 화면 방향 변경시 디스플레이 재조정
         window.addEventListener('orientationchange', function() {
-          setTimeout(resizeCanvas, 100);
+          setTimeout(() => {
+            adjustVideoDisplay();
+            resizeCanvas();
+          }, 100);
+        });
+
+        // 화면 크기 변경시에도 재조정
+        window.addEventListener('resize', function() {
+          adjustVideoDisplay();
+          resizeCanvas();
         });
 
       } catch (error) {
@@ -150,14 +229,20 @@
             const fallbackConstraints = {
               video: {
                 facingMode: 'user', // 전면 카메라
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                width: { ideal: 2560, min: 1280 }, // 전면도 고화질
+                height: { ideal: 1440, min: 720 },
+                frameRate: { ideal: 30, min: 15 },
+                aspectRatio: { ideal: 16/9 }
               },
               audio: false
             };
             stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
             video.srcObject = stream;
-            video.style.display = 'block';
+            
+            video.addEventListener('loadedmetadata', function() {
+              console.log(`전면 카메라 해상도: ${video.videoWidth}x${video.videoHeight}`);
+              adjustVideoDisplay();
+            });
           } catch (fallbackError) {
             console.error('전면 카메라 접근 오류:', fallbackError);
           }
@@ -165,34 +250,50 @@
       }
     }
 
-    // 캔버스 크기 조정
+    // 비디오 디스플레이 조정 (갤럭시 카메라처럼)
+    function adjustVideoDisplay() {
+      const video = document.getElementById('video');
+      const container = document.querySelector('.shot_area');
+      
+      if (video.videoWidth && video.videoHeight) {
+        const videoAspectRatio = video.videoWidth / video.videoHeight;
+        const containerAspectRatio = container.clientWidth / container.clientHeight;
+        
+        // 갤럭시 카메라처럼 화면을 꽉 채우되 비율 유지
+        if (videoAspectRatio > containerAspectRatio) {
+          // 비디오가 더 넓은 경우: 높이를 맞춤
+          video.style.width = 'auto';
+          video.style.height = '100%';
+          video.style.objectFit = 'cover';
+        } else {
+          // 비디오가 더 높은 경우: 너비를 맞춤
+          video.style.width = '100%';
+          video.style.height = 'auto';
+          video.style.objectFit = 'cover';
+        }
+        
+        // 캔버스도 동일하게 설정
+        resizeCanvas();
+      }
+    }
+
+    // 캔버스 크기 조정 (숨김 상태로 변경)
     function resizeCanvas() {
       if (video.videoWidth && video.videoHeight) {
-        const aspectRatio = video.videoWidth / video.videoHeight;
         const containerWidth = document.querySelector('.shot_area').clientWidth;
         const containerHeight = document.querySelector('.shot_area').clientHeight;
-        
-        let canvasWidth, canvasHeight;
-        
-        if (containerWidth / containerHeight > aspectRatio) {
-          canvasHeight = containerHeight;
-          canvasWidth = canvasHeight * aspectRatio;
-        } else {
-          canvasWidth = containerWidth;
-          canvasHeight = canvasWidth / aspectRatio;
-        }
 
-        // 모든 캔버스 크기 설정
+        // 캔버스를 숨김 상태로 설정하고 실제 비디오 크기로 맞춤
         [canvas, canvasRaw, canvasThumb].forEach(c => {
-          c.width = canvasWidth;
-          c.height = canvasHeight;
-          c.style.width = canvasWidth + 'px';
-          c.style.height = canvasHeight + 'px';
+          c.width = video.videoWidth;
+          c.height = video.videoHeight;
+          c.style.display = 'none'; // 캔버스 숨김
         });
 
-        // 썸네일 캔버스는 작게 설정
-        canvasThumb.width = 200;
-        canvasThumb.height = 200 / aspectRatio;
+        // 썸네일 캔버스만 작게 설정
+        const aspectRatio = video.videoWidth / video.videoHeight;
+        canvasThumb.width = 300;
+        canvasThumb.height = 300 / aspectRatio;
       }
     }
 
@@ -204,16 +305,41 @@
       }
 
       try {
-        // 원본 해상도로 캡처
+        // 현재 비디오 상태 (줌, 필터 등)를 반영한 캡처
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // 임시 캔버스를 비디오 크기로 설정
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
+        
+        // 필터 적용
+        if (video.style.filter) {
+          tempCtx.filter = video.style.filter;
+        }
+        
+        // 줌이 적용된 상태로 캡처
+        if (currentZoom > 1) {
+          const scaledWidth = video.videoWidth / currentZoom;
+          const scaledHeight = video.videoHeight / currentZoom;
+          const offsetX = (video.videoWidth - scaledWidth) / 2;
+          const offsetY = (video.videoHeight - scaledHeight) / 2;
+          
+          tempCtx.drawImage(video, offsetX, offsetY, scaledWidth, scaledHeight, 0, 0, video.videoWidth, video.videoHeight);
+        } else {
+          tempCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        }
+
+        // 원본 해상도로 캡처 (임시 캔버스에서)
         canvasRaw.width = video.videoWidth;
         canvasRaw.height = video.videoHeight;
-        ctxRaw.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        ctxRaw.drawImage(tempCanvas, 0, 0);
 
         // 화면 표시용 캡처
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
         // 썸네일 생성
-        ctxThumb.drawImage(video, 0, 0, canvasThumb.width, canvasThumb.height);
+        ctxThumb.drawImage(tempCanvas, 0, 0, canvasThumb.width, canvasThumb.height);
 
         // 이미지 데이터 저장
         const imageData = canvasRaw.toDataURL('image/jpeg', 0.9);
@@ -286,6 +412,15 @@
             .then(newStream => {
               stream = newStream;
               video.srcObject = stream;
+              
+              // 카메라 전환 시 줌 리셋
+              currentZoom = 1;
+              video.style.transform = 'scale(1)';
+              
+              // 새 카메라 로드 후 디스플레이 재조정
+              video.addEventListener('loadedmetadata', function() {
+                adjustVideoDisplay();
+              }, { once: true });
             })
             .catch(error => {
               console.error('카메라 전환 오류:', error);
@@ -294,6 +429,34 @@
             });
         }
       }
+    }
+
+    // 줌 레벨 관리
+    let currentZoom = 1;
+    const maxZoom = 8; // 갤럭시 카메라 수준
+    const minZoom = 1;
+
+    // 줌 인
+    function zoomIn() {
+      if (currentZoom < maxZoom) {
+        currentZoom = Math.min(maxZoom, currentZoom + 0.5);
+        applyZoom();
+      }
+    }
+
+    // 줌 아웃
+    function zoomOut() {
+      if (currentZoom > minZoom) {
+        currentZoom = Math.max(minZoom, currentZoom - 0.5);
+        applyZoom();
+      }
+    }
+
+    // 줌 적용
+    function applyZoom() {
+      const video = document.getElementById('video');
+      video.style.transform = `scale(${currentZoom})`;
+      console.log(`현재 줌: ${currentZoom}x`);
     }
 
     // 밝기 조절
