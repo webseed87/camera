@@ -1,0 +1,919 @@
+ /* 기본 리셋 및 스크롤 방지 */
+ * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+body {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    background: #000;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+}
+
+/* 기본 카메라 컨테이너 */
+.camera_warp {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    flex-wrap: wrap;
+    overflow: hidden;
+    background: #000;
+    align-items: flex-start;
+    justify-content: flex-start;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+/* 상단 카메라 촬영 영역 (여백 완전 제거) */
+.shot_area {
+    position: relative;
+    height: calc(100vw / 3 * 4);
+    box-sizing: border-box;
+    background-color: #000;
+    width: 100vw;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: none;
+    order: 1;
+    flex-shrink: 0;
+}
+
+/* 비디오 전체화면 (여백 없이 꽉 채우기) */
+#video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: block;
+}
+
+/* 캔버스 요소들도 여백 제거 */
+#canvas, #canvas_raw, #canvas_thumb {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: block;
+}
+
+/* 하단 검정 컨트롤 영역 (적절한 높이로 수정) */
+.control-wrap {
+    height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
+    min-height: 120px;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    box-sizing: border-box;
+    width: 100%;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    order: 2;
+    flex-shrink: 0;
+    padding: 10px 0;
+}
+
+/* 줌 컨트롤을 검정색 바 영역으로 이동 */
+.zoom-controls {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    pointer-events: auto;
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+
+.zoom-control-bar {
+    display: flex;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 25px;
+    padding: 4px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    gap: 2px;
+}
+
+.zoom-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 19px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 52px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.zoom-btn.active {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+/* 하단 검정 액션바 컨테이너 - 더 넓은 간격 */
+.action-bar {
+    width: 100%;
+    height: auto;
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 80px;
+    padding: 0 20px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    flex-grow: 1;
+}
+
+/* 썸네일 컨테이너 - 더 큰 기본 크기 */
+.thumbnail-container {
+    width: 70px;
+    height: 70px;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.thumbnail-container:active {
+    transform: scale(0.95);
+}
+
+.thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    background: rgba(128, 128, 128, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 갤럭시 스타일 촬영 버튼 - 더 큰 기본 크기 */
+.capture-btn {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: transparent;
+    border: 6px solid white;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.1s ease;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.capture-btn:active {
+    transform: scale(0.9);
+    border-width: 8px;
+}
+
+.capture-btn-inner {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.1s ease;
+}
+
+.capture-btn:active .capture-btn-inner {
+    width: 50px;
+    height: 50px;
+}
+
+/* 모드 전환 버튼 영역 (오른쪽) */
+.mode-container {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 기존 CSS 참고 - 세로 모드 반응형 */
+
+/* 세로 모드 - 적절한 검정 영역 */
+@media (orientation: portrait) {
+    /* 기본: 화면 전체를 카메라로 사용, 검정 바 적절한 크기 */
+    .shot_area {
+        height: calc(100vw / 3 * 4);
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+    }
+    .control-wrap {
+        height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
+        min-height: 120px;
+        max-height: 180px;
+    }
+
+    /* 큰 화면에서는 적절한 비율 유지하되 여백 최소화 */
+    @media (min-width: 432px) {
+        .shot_area {
+            height: calc(60vw / 3 * 4);
+            width: 60vw;
+            margin: 0 20vw;
+        }
+        .control-wrap {
+            height: calc(var(--vh, 1vh) * 100 - (60vw / 3 * 4));
+            min-height: 130px;
+            max-height: 200px;
+        }
+    }
+
+    /* 태블릿은 좀 더 작은 비율 */
+    @media (min-width: 768px) {
+        .shot_area {
+            height: calc(70vw / 3 * 4);
+            width: 70vw;
+            margin: 0 15vw;
+        }
+        .control-wrap {
+            height: calc(var(--vh, 1vh) * 100 - (70vw / 3 * 4));
+            min-height: 150px;
+            max-height: 220px;
+        }
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-width: 5px;
+        }
+        .capture-btn-inner {
+            width: 54px;
+            height: 54px;
+        }
+        .thumbnail-container {
+            width: 50px;
+            height: 50px;
+        }
+        .zoom-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            min-width: 36px;
+        }
+    }
+
+    /* 작은 화면에서는 버튼 크기 조정 */
+    @media (max-width: 376px) {
+        .capture-btn {
+            width: 50px;
+            height: 50px;
+            border-width: 3px;
+        }
+        .capture-btn-inner {
+            width: 38px;
+            height: 38px;
+        }
+        .thumbnail-container {
+            width: 35px;
+            height: 35px;
+        }
+        .zoom-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 30px;
+        }
+    }
+}
+
+/* 가로모드 - 화면 비율에 맞게 조정 */
+@media (orientation: landscape) {
+    .camera_warp {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        flex-direction: row;
+        overflow: hidden;
+        background: #000;
+        align-items: stretch;
+        justify-content: flex-start;
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+    
+    /* 가로모드에서는 카메라가 화면 높이의 75% */
+    .shot_area {
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        width: 75vw;
+        margin: 0;
+        padding: 0;
+        order: 1;
+        flex-shrink: 0;
+        position: relative;
+    }
+    
+    /* 가로모드에서 액션바는 오른쪽 25% */
+    .control-wrap {
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        width: 25vw;
+        min-width: 120px;
+        background-color: #000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+        overflow: hidden;
+        position: relative;
+        order: 2;
+        flex-shrink: 0;
+        padding: 15px 10px;
+        gap: 25px;
+        /* 완전한 세로 가운데 정렬 */
+        align-content: center;
+    }
+
+    /* 가로모드에서 줌과 액션바를 완전한 세로 가운데 정렬 */
+
+    /* 가로모드에서 줌 컨트롤 */
+    .zoom-controls {
+        order: 1;
+        width: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        pointer-events: auto;
+        flex-shrink: 0;
+        margin: 0;
+        margin: 0 15px; /* 줌과 액션바 사이 간격 */
+    }
+
+    .zoom-control-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+
+    /* 가로모드에서 액션바를 세로 가운데 배치 */
+    .action-bar {
+        order: 2;
+        width: auto;
+        height: auto;
+        background-color: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 15px; /* 촬영버튼과 썸네일 사이 간격 */
+        padding: 0;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    /* 가로모드에서 액션바 내부 요소들의 순서 지정 */
+    .action-bar .capture-btn {
+        order: 1; /* 촬영 버튼이 위에 */
+    }
+
+    .action-bar .thumbnail-container {
+        order: 2; /* 썸네일이 아래 */
+    }
+
+    .action-bar .mode-container {
+        order: 3; /* 빈 공간이 맨 아래 */
+        display: none; /* 가로모드에서는 빈 공간 숨김 */
+    }
+
+    /* 가로모드 기본 버튼 크기 (모든 가로모드) */
+    .capture-btn {
+        width: 55px;
+        height: 55px;
+        border-width: 3px;
+    }
+    .capture-btn-inner {
+        width: 43px;
+        height: 43px;
+    }
+    .thumbnail-container {
+        width: 42px;
+        height: 42px;
+    }
+    .zoom-btn {
+        padding: 5px 9px;
+        font-size: 13px;
+        min-width: 34px;
+        margin: 3px 0;
+    }
+
+    /* 모바일 가로 화면 (높이 기준) - 적절한 크기 */
+    @media (max-height: 480px) and (orientation: landscape) {
+        .control-wrap {
+            padding: 15px 8px;
+            gap: 18px;
+            min-width: 100px;
+        }
+        .capture-btn {
+            width: 55px;
+            height: 55px;
+            border-width: 3px;
+        }
+        .capture-btn-inner {
+            width: 43px;
+            height: 43px;
+        }
+        .thumbnail-container {
+            width: 42px;
+            height: 42px;
+        }
+        .action-bar {
+            gap: 18px;
+        }
+        .zoom-btn {
+            padding: 6px 10px;
+            font-size: 13px;
+            min-width: 32px;
+        }
+        .zoom-controls {
+            gap: 8px;
+            margin: 10px 0px;
+        }
+        .zoom-control-bar {
+            gap: 8px;
+        }
+    }
+
+    /* 매우 작은 모바일 가로 화면 */
+    @media (max-height: 400px) and (orientation: landscape) {
+        .control-wrap {
+            padding: 10px 6px;
+            gap: 15px;
+            width: 20vw;
+            min-width: 90px;
+        }
+        .shot_area {
+            width: 80vw;
+        }
+        .capture-btn {
+            width: 60px;
+            height: 60px;
+            border-width: 3px;
+        }
+        .capture-btn-inner {
+            width: 48px;
+            height: 48px;
+        }
+        .thumbnail-container {
+            width: 36px;
+            height: 36px;
+        }
+        .action-bar {
+            gap: 15px;
+        }
+        .zoom-btn {
+            padding: 5px 9px;
+            font-size: 12px;
+            min-width: 28px;
+        }
+        .zoom-controls {
+            gap: 6px;
+            margin: 8px 0px;
+        }
+        .zoom-control-bar {
+            gap: 6px;
+        }
+    }
+
+    /* 태블릿 가로 모드 (높이 기준) */
+    @media (min-height: 481px) and (orientation: landscape) {
+        .control-wrap {
+            width: 20vw;
+            min-width: 150px;
+            padding: 20px 15px;
+            gap: 30px;
+        }
+        
+        .shot_area {
+            width: 80vw;
+        }
+
+        .capture-btn {
+            width: 80px;
+            height: 80px;
+            border-width: 5px;
+        }
+        .capture-btn-inner {
+            width: 64px;
+            height: 64px;
+        }
+        .thumbnail-container {
+            width: 60px;
+            height: 60px;
+        }
+        .zoom-btn {
+            padding: 10px 15px;
+            font-size: 18px;
+            min-width: 45px;
+            margin: 5px 0;
+        }
+        .action-bar {
+            gap: 25px;
+        }
+        .zoom-control-bar {
+            gap: 12px;
+        }
+    }
+
+    /* 대형 태블릿/데스크탑 (1024px 이상) */
+    @media (min-width: 1024px) and (orientation: landscape) {
+        .control-wrap {
+            width: 18vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 180px;
+            padding: 25px 20px;
+            gap: 35px;
+        }
+        
+        .shot_area {
+            width: 82vw;
+        }
+
+        .capture-btn {
+            width: 90px;
+            height: 90px;
+            border-width: 6px;
+        }
+        .capture-btn-inner {
+            width: 72px;
+            height: 72px;
+        }
+        .thumbnail-container {
+            width: 70px;
+            height: 70px;
+        }
+        .zoom-btn {
+            padding: 12px 18px;
+            font-size: 20px;
+            min-width: 50px;
+            margin: 6px 0;
+        }
+        .action-bar {
+            gap: 40px;
+        }
+        .zoom-control-bar {
+            gap: 15px;
+        }
+    }
+
+    /* 태블릿 세로모드 (768px 이상) */
+    @media (min-width: 768px) and (orientation: portrait) {
+        .control-wrap {
+            height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
+            min-height: 140px;
+            max-height: 200px;
+            padding: 15px 0;
+            gap: 15px;
+        }
+        
+        .capture-btn {
+            width: 75px;
+            height: 75px;
+            border-width: 5px;
+        }
+        .capture-btn-inner {
+            width: 59px;
+            height: 59px;
+        }
+        .thumbnail-container {
+            width: 55px;
+            height: 55px;
+        }
+        .zoom-btn {
+            padding: 10px 14px;
+            font-size: 18px;
+            min-width: 42px;
+        }
+        .action-bar {
+            gap: 70px;
+        }
+        .zoom-control-bar {
+            gap: 12px;
+        }
+    }
+
+    /* 대형 태블릿 세로모드 (1024px 이상) */
+    @media (min-width: 1024px) and (orientation: portrait) {
+        .control-wrap {
+            height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
+            min-height: 160px;
+            max-height: 220px;
+            padding: 20px 0;
+            gap: 20px;
+        }
+        
+        .capture-btn {
+            width: 85px;
+            height: 85px;
+            border-width: 6px;
+        }
+        .capture-btn-inner {
+            width: 67px;
+            height: 67px;
+        }
+        .thumbnail-container {
+            width: 65px;
+            height: 65px;
+        }
+        .zoom-btn {
+            padding: 12px 16px;
+            font-size: 20px;
+            min-width: 46px;
+        }
+        .action-bar {
+            gap: 80px;
+        }
+        .zoom-control-bar {
+            gap: 15px;
+        }
+    }
+}
+
+/* iOS Safari 및 모바일 브라우저 최적화 (주소창 완전 숨김) */
+@supports (-webkit-touch-callout: none) {
+    .camera_warp {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        overflow: hidden;
+        /* 주소창이 숨겨졌을 때 전체 화면 사용 */
+        height: calc(100vh + env(keyboard-inset-height, 0px));
+    }
+
+    body {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+        /* 주소창 영역까지 포함한 전체 높이 */
+        height: calc(100vh + 60px);
+    }
+
+    .shot_area {
+        position: relative;
+        overflow: hidden;
+        /* 주소창 숨김 상태에서 카메라 영역 최적화 */
+        height: calc(-webkit-fill-available / 3 * 4) !important;
+    }
+
+    .control-wrap {
+        overflow: hidden;
+        position: relative;
+        /* 주소창 숨김 상태에서 액션바 영역 최적화 */
+        height: calc(-webkit-fill-available - (-webkit-fill-available / 3 * 4)) !important;
+        min-height: 120px !important;
+    }
+}
+
+/* 안드로이드 Chrome 및 삼성브라우저 주소창 최적화 */
+@media screen and (max-device-width: 800px) and (orientation: portrait) {
+    .camera_warp {
+        /* 안드로이드에서 주소창이 사라질 때를 대비한 여유 공간 */
+        height: calc(100vh + 56px);
+        max-height: none;
+    }
+    
+    body {
+        min-height: calc(100vh + 56px);
+    }
+}
+
+@media screen and (max-device-width: 800px) and (orientation: landscape) {
+    .camera_warp {
+        /* 가로모드에서 주소창 완전 숨김 */
+        height: calc(100vh + 40px);
+    }
+}
+
+/* 모든 브라우저에서 스크롤바 숨기기 */
+::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 삼성 브라우저 최적화 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+    .zoom-control-bar {
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+    }
+}
+
+/* 사진 목록 팝업 */
+.photo-list-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    display: none;
+    overflow-y: auto;
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+}
+
+.photo-list-content {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.photo-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: white;
+    padding: 20px 0;
+}
+
+.photo-list-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 20px;
+    transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    padding-bottom: 20px;
+}
+
+.photo-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.photo-item:active {
+    transform: scale(0.95);
+}
+
+.photo-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.photo-item-info {
+    padding: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* 화면 회전 시 부드러운 전환 */
+* {
+    transition: transform 0.3s ease;
+}
+
+/* 터치 최적화 */
+.zoom-btn, .capture-btn, .thumbnail-container {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* iOS Safari 및 모바일 브라우저 최적화 (주소창 완전 숨김) */
+@supports (-webkit-touch-callout: none) {
+    .camera_warp {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        overflow: hidden;
+        /* 주소창이 숨겨졌을 때 전체 화면 사용 */
+        height: calc(100vh + env(keyboard-inset-height, 0px));
+    }
+
+    body {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+        /* 주소창 영역까지 포함한 전체 높이 */
+        height: calc(100vh + 60px);
+    }
+
+    .shot_area {
+        position: relative;
+        overflow: hidden;
+        /* 주소창 숨김 상태에서 카메라 영역 최적화 */
+        height: calc(-webkit-fill-available / 3 * 4) !important;
+    }
+
+    .control-wrap {
+        overflow: hidden;
+        position: relative;
+        /* 주소창 숨김 상태에서 액션바 영역 최적화 */
+        height: calc(-webkit-fill-available - (-webkit-fill-available / 3 * 4)) !important;
+        min-height: 120px !important;
+    }
+}
+
+/* 안드로이드 Chrome 및 삼성브라우저 주소창 최적화 */
+@media screen and (max-device-width: 800px) and (orientation: portrait) {
+    .camera_warp {
+        /* 안드로이드에서 주소창이 사라질 때를 대비한 여유 공간 */
+        height: calc(100vh + 56px);
+        max-height: none;
+    }
+    
+    body {
+        min-height: calc(100vh + 56px);
+    }
+}
+
+@media screen and (max-device-width: 800px) and (orientation: landscape) {
+    .camera_warp {
+        /* 가로모드에서 주소창 완전 숨김 */
+        height: calc(100vh + 40px);
+    }
+}
+
+/* 모든 브라우저에서 스크롤바 숨기기 */
+::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
