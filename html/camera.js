@@ -1,4 +1,4 @@
-
+// 2025-08-06 송주현 새로 작성
 let stream = null;
 let capturedImages = [];
 let video, canvas, canvasRaw, canvasThumb, ctx, ctxRaw, ctxThumb;

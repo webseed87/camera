@@ -1,3 +1,6 @@
+/* 2025-08-06 송주현 새로 작성  */
+/* 단독페이지 기준으로 css를 작성 했기때문에 카메라 페이지 말고 다른곳에서 로드시에 다른 css와 충돌 할 가능성이 있습니다 */
+
  /* 기본 리셋 및 스크롤 방지 */
  * {
     margin: 0;
@@ -516,7 +519,7 @@ body {
     }
 
     /* 태블릿 가로 모드 (높이 기준) */
-    @media (min-height: 481px) and (orientation: landscape) {
+    /* @media (min-height: 481px) and (orientation: landscape) {
         .control-wrap {
             width: 20vw;
             min-width: 150px;
@@ -553,7 +556,7 @@ body {
         .zoom-control-bar {
             gap: 12px;
         }
-    }
+    } */
 
     /* 대형 태블릿/데스크탑 (1024px 이상) */
     @media (min-width: 1024px) and (orientation: landscape) {
@@ -839,7 +842,7 @@ body {
     }
 }
 
-/* 데스크톱/웹 버전 최적화 */
+/* 데스크톱/웹 버전 최적화 웹 브라우저에서 사용하지 않는다면 이 부분 삭제 해서 쓰세요 */
 @media (min-width: 1440px) and (pointer: fine) and (hover: hover) {
     body {
         overflow: auto;
