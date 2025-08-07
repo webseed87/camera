@@ -258,9 +258,9 @@ body {
     /* 태블릿은 좀 더 작은 비율 */
     @media (min-width: 768px) {
         .shot_area {
-            height: calc(70vw / 3 * 4);
-            width: 70vw;
-            margin: 0 15vw;
+            height: calc(90vw / 3 * 4);
+            width: 90vw;
+            margin: 0 5vw;
         }
         .control-wrap {
             height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
@@ -636,7 +636,7 @@ body {
     }
 
     /* 대형 태블릿 세로모드 (1024px 이상) */
-    @media (min-width: 1024px) and (orientation: portrait) {
+    @media (min-width: 1024px) and (orientation: portrait) and (pointer: fine) {
         .control-wrap {
             height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
             min-height: 160px;
@@ -840,7 +840,7 @@ body {
 }
 
 /* 데스크톱/웹 버전 최적화 */
-@media (min-width: 1280px) and (pointer: fine) {
+@media (min-width: 1440px) and (pointer: fine) and (hover: hover) {
     body {
         overflow: auto;
         position: static;
