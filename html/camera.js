@@ -50,7 +50,9 @@ function forceLayoutControl() {
     function applyLayout() {
         const w = window.innerWidth;
         const h = window.innerHeight;
-        const isLandscape = w > h;
+        
+        // 갤럭시 폴드 5 세로모드 예외 처리 (2176x1812는 강제로 세로모드)
+        const isLandscape = (w === 2176 && h === 1812) ? false : w > h;
         const iosVersion = getIOSVersion();
         const isOldIOS = iosVersion > 0 && iosVersion <= 15; // iPhone 13 이하
         const inApp = isInAppBrowser();
