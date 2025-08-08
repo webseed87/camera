@@ -21,9 +21,141 @@ function initializeElements() {
 document.addEventListener('DOMContentLoaded', function() {
     initializeElements();
     initAddressBarHiding();  // 주소창 숨김 먼저 초기화
+    setViewportHeight();     // 뷰포트 높이 설정
+    forceLayoutControl();    // 강제 레이아웃 제어
     initCamera();
     initTouchControls();
 });
+
+// 강제 레이아웃 제어 함수
+function forceLayoutControl() {
+    // iOS 버전 감지
+    function getIOSVersion() {
+        const userAgent = navigator.userAgent;
+        const match = userAgent.match(/OS (\d+)_(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+    }
+    
+    // 인앱 브라우저 감지
+    function isInAppBrowser() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        return userAgent.includes('kakaotalk') || 
+               userAgent.includes('naver') || 
+               userAgent.includes('instagram') ||
+               userAgent.includes('facebook') ||
+               userAgent.includes('line') ||
+               (userAgent.includes('safari') && !userAgent.includes('version'));
+    }
+    
+    function applyLayout() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const isLandscape = w > h;
+        const iosVersion = getIOSVersion();
+        const isOldIOS = iosVersion > 0 && iosVersion <= 15; // iPhone 13 이하
+        const inApp = isInAppBrowser();
+        
+        // 기존 클래스 제거
+        document.body.classList.remove('force-landscape', 'force-portrait', 'old-ios', 'new-ios');
+        
+        // iOS 버전별 클래스 추가
+        if (isOldIOS) {
+            document.body.classList.add('old-ios');
+        } else {
+            document.body.classList.add('new-ios');
+        }
+        
+        // 새 클래스 적용
+        if (isLandscape) {
+            document.body.classList.add('force-landscape');
+            console.log(`🔄 강제 가로모드 적용: ${w}x${h} (iOS: ${iosVersion}, 인앱: ${inApp})`);
+        } else {
+            document.body.classList.add('force-portrait');
+            console.log(`🔄 강제 세로모드 적용: ${w}x${h} (iOS: ${iosVersion}, 인앱: ${inApp})`);
+        }
+        
+        // 실제 높이 계산 및 적용 (구형 iOS는 더 정교하게)
+        let realHeight = window.innerHeight;
+        
+        if (isOldIOS && inApp && isLandscape) {
+            // iPhone 13 이하 + 인앱 + 가로모드: 주소창 높이 추가 차감
+            realHeight = window.innerHeight - 80; // 주소창 높이 추정
+            console.log(`⚠️ 구형 iOS 인앱 브라우저 보정: ${realHeight}px`);
+        }
+        
+        document.documentElement.style.setProperty('--real-height', `${realHeight}px`);
+        document.documentElement.style.setProperty('--vh', `${realHeight * 0.01}px`);
+    }
+    
+    // 초기 적용
+    applyLayout();
+    
+    // 화면 크기 변경 시 즉시 적용
+    window.addEventListener('resize', applyLayout);
+    window.addEventListener('orientationchange', function() {
+        setTimeout(applyLayout, 100);
+        setTimeout(applyLayout, 300);
+        setTimeout(applyLayout, 500);
+    });
+    
+    // 주기적으로 체크 (안전장치)
+    setInterval(applyLayout, 1000);
+}
+
+// 실제 뷰포트 높이 설정 (강화된 버전)
+function setViewportHeight() {
+    function updateHeight() {
+        const vh = window.innerHeight * 0.01;
+        const realHeight = window.innerHeight;
+        const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        
+        // CSS 변수 설정
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+        document.documentElement.style.setProperty('--real-height', `${realHeight}px`);
+        document.documentElement.style.setProperty('--real-vh', `${vh}px`);
+        
+        // body에도 설정 (fallback)
+        document.body.style.setProperty('--vh', `${vh}px`);
+        document.body.style.setProperty('--real-height', `${realHeight}px`);
+        
+        // 디버깅 정보
+        console.log(`📱 뷰포트 정보:`);
+        console.log(`- 크기: ${window.innerWidth}x${window.innerHeight}`);
+        console.log(`- 방향: ${orientation}`);
+        console.log(`- vh 값: ${vh}px`);
+        console.log(`- 실제 높이: ${realHeight}px`);
+        
+        // 설정된 값 확인
+        const setVh = getComputedStyle(document.documentElement).getPropertyValue('--vh');
+        const setHeight = getComputedStyle(document.documentElement).getPropertyValue('--real-height');
+        console.log(`🔍 설정된 CSS 변수 - --vh: ${setVh}, --real-height: ${setHeight}`);
+        
+        // 강제로 레이아웃 새로고침
+        document.body.style.display = 'none';
+        document.body.offsetHeight; // 강제 reflow
+        document.body.style.display = '';
+    }
+    
+    // 초기 설정 (여러 번 실행으로 확실히)
+    updateHeight();
+    setTimeout(updateHeight, 100);
+    setTimeout(updateHeight, 500);
+    
+    // 화면 크기 변경 시 업데이트
+    window.addEventListener('resize', updateHeight);
+    window.addEventListener('orientationchange', function() {
+        setTimeout(updateHeight, 100);
+        setTimeout(updateHeight, 300);
+        setTimeout(updateHeight, 500);
+    });
+    
+    // 페이지 가시성 변경 시에도 업데이트 (앱 전환 등)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            setTimeout(updateHeight, 100);
+        }
+    });
+}
 
 // 터치 제어 초기화
 function initTouchControls() {
@@ -736,5 +868,89 @@ function initAddressBarHiding() {
             if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
             if (window.scrollY !== 0) window.scrollTo(0, 0);
         }, 100);
+         // 강화된 주소창 숨기기 (모든 브라우저 지원)
+  function hideAddressBar() {
+    // 스크롤을 통한 주소창 숨기기
+    window.scrollTo(0, 1);
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      // viewport 높이 재계산
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    }, 50);
+  }
+
+  // 다양한 이벤트에서 주소창 숨기기 시도
+  document.addEventListener('touchstart', hideAddressBar, { passive: true });
+  document.addEventListener('touchend', hideAddressBar, { passive: true });
+  document.addEventListener('click', hideAddressBar, { passive: true });
+  
+  // 페이지 로드 직후와 시간 간격으로 주소창 숨기기
+  setTimeout(hideAddressBar, 100);
+  setTimeout(hideAddressBar, 500);
+  setTimeout(hideAddressBar, 1000);
+  
+  // 방향 변경시에도 주소창 숨기기
+  window.addEventListener('orientationchange', function() {
+    setTimeout(hideAddressBar, 100);
+    setTimeout(hideAddressBar, 500);
+  });
     }
+
+    // 인앱 브라우저 감지 및 실제 뷰포트 높이 계산
+    detectInAppBrowser();
+}
+
+// 인앱 브라우저 감지 및 뷰포트 높이 동적 조정
+function detectInAppBrowser() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isInAppBrowser = 
+        userAgent.includes('kakaotalk') ||      // 카카오톡
+        userAgent.includes('naver') ||          // 네이버앱
+        userAgent.includes('instagram') ||      // 인스타그램
+        userAgent.includes('facebook') ||       // 페이스북
+        userAgent.includes('twitter') ||        // 트위터
+        userAgent.includes('line') ||           // 라인
+        userAgent.includes('wv') ||             // Android WebView
+        (userAgent.includes('safari') && !userAgent.includes('version')); // iOS 인앱
+
+    // 실제 뷰포트 높이 계산 함수
+    function setRealViewportHeight() {
+        // iOS Safari 인앱 브라우저 특별 처리
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        let realHeight;
+
+        if (isIOS && isInAppBrowser) {
+            // iOS 인앱 브라우저: 주소창 높이 추정 후 차감
+            const orientation = window.orientation;
+            const addressBarHeight = Math.abs(orientation) === 90 ? 80 : 60; // 가로모드에서 더 큰 주소창
+            realHeight = window.innerHeight - (isInAppBrowser ? addressBarHeight : 0);
+        } else {
+            // Android 또는 일반 브라우저
+            realHeight = window.innerHeight;
+        }
+
+        // CSS 커스텀 속성으로 실제 높이 설정
+        document.documentElement.style.setProperty('--real-vh', `${realHeight * 0.01}px`);
+        document.documentElement.style.setProperty('--real-height', `${realHeight}px`);
+        
+        console.log(`인앱브라우저: ${isInAppBrowser}, 실제높이: ${realHeight}px`);
+    }
+
+    // 초기 설정
+    setRealViewportHeight();
+
+    // 화면 크기 변경 및 회전 시 재계산
+    let resizeTimer;
+    function handleViewportChange() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            setRealViewportHeight();
+        }, 100);
+    }
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(handleViewportChange, 300); // iOS 회전 지연 대응
+    });
 }

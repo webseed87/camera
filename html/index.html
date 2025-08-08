@@ -7,6 +7,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- iOS 인앱 브라우저 주소창 대응 -->
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="apple-mobile-web-app-title" content="카메라">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
     <meta name="theme-color" content="#000000">
     <meta name="format-detection" content="telephone=no">
     <meta name="msapplication-tap-highlight" content="no">
@@ -29,6 +33,13 @@
         document.addEventListener("touchmove", (e) => {
             e.preventDefault();
         }, { passive: false });
+             
+        
+        // 주소창 숨기기 시도
+        function hideAddressBar() {
+            window.scrollTo(0, 1);
+            setTimeout(() => window.scrollTo(0, 0), 50);
+        }
         
      
         // 페이지 로드 시 한 번만

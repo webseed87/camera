@@ -29,7 +29,10 @@ body {
 .camera_warp {
     display: block;
     width: 100vw;
-    height: 100vh;
+    /* iOS 인앱 브라우저 대응을 위한 다중 fallback */
+    height: 100vh; /* 기본값 */
+    height: 100dvh; /* iOS 15+ 동적 뷰포트 */
+    height: calc(var(--vh, 1vh) * 100); /* JavaScript 계산값 */
     overflow: hidden;
     background: #000;
     position: fixed;
@@ -43,7 +46,10 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(100vh - 180px);
+    /* iOS 인앱 브라우저 대응을 위한 다중 fallback */
+    height: calc(100vh - 180px); /* 기본값 */
+    height: calc(100dvh - 180px); /* iOS 15+ 동적 뷰포트 */
+    height: calc(var(--vh, 1vh) * 100 - 180px); /* JavaScript 계산값 */
     background-color: #000;
     overflow: hidden;
     margin: 0;
@@ -238,11 +244,14 @@ body {
         margin: 0;
         padding: 0;
     }
-            .control-wrap {
-            height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4));
-            min-height: 120px;
-            max-height: 180px;
-        }
+    .control-wrap {
+        /* iOS 인앱 브라우저 대응을 위한 다중 fallback */
+        height: calc(100vh - (100vw / 3 * 4)); /* 기본값 */
+        height: calc(100dvh - (100vw / 3 * 4)); /* iOS 15+ 동적 뷰포트 */
+        height: calc(var(--vh, 1vh) * 100 - (100vw / 3 * 4)); /* JavaScript 계산값 */
+        min-height: 120px;
+        max-height: 180px;
+    }
 
     /* 큰 화면에서는 적절한 비율 유지하되 여백 최소화 */
     @media (min-width: 432px) {
@@ -318,8 +327,10 @@ body {
     .camera_warp {
         display: flex;
         width: 100vw;
-        height: 100vh;
-                    height: calc(var(--vh, 1vh) * 100);
+        /* iOS Safari 인앱 브라우저 특별 대응 */
+        height: 100vh; /* 기본값 */
+        height: 100dvh; /* iOS 15+ 동적 뷰포트 */
+        height: calc(var(--vh, 1vh) * 100); /* JavaScript 계산값 */
         flex-direction: row;
         overflow: hidden;
         background: #000;
@@ -332,8 +343,9 @@ body {
     
     /* 가로모드에서는 카메라가 화면 높이의 75% */
     .shot_area {
-        height: 100vh;
-                    height: calc(var(--vh, 1vh) * 100);
+        height: 100vh; /* 기본값 */
+        height: 100dvh; /* iOS 15+ 동적 뷰포트 */
+        height: calc(var(--vh, 1vh) * 100); /* JavaScript 계산값 */
         width: 75vw;
         margin: 0;
         padding: 0;
@@ -344,8 +356,9 @@ body {
     
     /* 가로모드에서 액션바는 오른쪽 25% */
     .control-wrap {
-        height: 100vh;
-        height: calc(var(--vh, 1vh) * 100);
+        height: 100vh; /* 기본값 */
+        height: 100dvh; /* iOS 15+ 동적 뷰포트 */
+        height: calc(var(--vh, 1vh) * 100); /* JavaScript 계산값 */
         width: 25vw;
         min-width: 120px;
         background-color: #000;
@@ -797,6 +810,161 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+}
+
+/* JavaScript 강제 레이아웃 제어 - 세로모드 */
+body.force-portrait .camera_warp {
+    display: block;
+    width: 100vw;
+    height: var(--real-height, 100vh);
+    overflow: hidden;
+    background: #000;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+body.force-portrait .shot_area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--real-height, 100vh) - 180px);
+    background-color: #000;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+body.force-portrait .control-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 180px;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    padding: 20px 0;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+/* JavaScript 강제 레이아웃 제어 - 가로모드 */
+body.force-landscape .camera_warp {
+    display: flex;
+    width: 100vw;
+    height: var(--real-height, 100vh);
+    flex-direction: row;
+    overflow: hidden;
+    background: #000;
+    align-items: stretch;
+    justify-content: flex-start;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+body.force-landscape .shot_area {
+    height: var(--real-height, 100vh);
+    width: 75vw;
+    margin: 0;
+    padding: 0;
+    order: 1;
+    flex-shrink: 0;
+    position: relative;
+}
+
+body.force-landscape .control-wrap {
+    height: var(--real-height, 100vh);
+    width: 25vw;
+    min-width: 120px;
+    background-color: #000;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    order: 2;
+    flex-shrink: 0;
+    padding: 15px 10px;
+    align-content: center;
+}
+
+/* 가로모드에서 줌 컨트롤 */
+body.force-landscape .zoom-controls {
+    order: 1;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    pointer-events: auto;
+    flex-shrink: 0;
+    margin: 0 6px;
+}
+
+body.force-landscape .zoom-control-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 가로모드에서 액션바를 세로 가운데 배치 */
+body.force-landscape .action-bar {
+    order: 2;
+    width: auto;
+    height: auto;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+/* 가로모드에서 액션바 내부 요소들의 순서 지정 */
+body.force-landscape .action-bar .capture-btn {
+    order: 1;
+}
+
+body.force-landscape .action-bar .thumbnail-container {
+    order: 2;
+}
+
+body.force-landscape .action-bar .mode-container {
+    order: 3;
+    display: none;
+}
+
+/* iPhone 13 이하 구형 iOS 전용 보정 */
+body.old-ios.force-landscape .camera_warp {
+    height: var(--real-height, calc(100vh - 80px)) !important;
+}
+
+body.old-ios.force-landscape .shot_area {
+    height: var(--real-height, calc(100vh - 80px)) !important;
+}
+
+body.old-ios.force-landscape .control-wrap {
+    height: var(--real-height, calc(100vh - 80px)) !important;
+}
+
+/* iPhone 14 이상 최신 iOS는 표준 처리 */
+body.new-ios.force-landscape .camera_warp,
+body.new-ios.force-landscape .shot_area,
+body.new-ios.force-landscape .control-wrap {
+    height: 100dvh; /* 동적 뷰포트 사용 */
 }
 
 /* 촬영 확인 팝업 스타일 */
