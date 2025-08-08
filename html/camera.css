@@ -1046,16 +1046,16 @@ body.new-ios.force-landscape .control-wrap {
 
 .capture-confirm-buttons {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     justify-content: center;
 }
 
 .confirm-btn {
     flex: 1;
-    padding: 15px 25px;
+    padding: 10px 18px;
     border: none;
     border-radius: 15px;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1110,8 +1110,8 @@ body.new-ios.force-landscape .control-wrap {
     }
     
     .confirm-btn {
-        padding: 12px 20px;
-        font-size: 16px;
+        padding: 12px 16px;
+        font-size: 14px;
         min-height: 50px;
     }
 }
