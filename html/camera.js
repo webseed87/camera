@@ -70,10 +70,8 @@ function forceLayoutControl() {
         // 새 클래스 적용
         if (isLandscape) {
             document.body.classList.add('force-landscape');
-            console.log(`🔄 강제 가로모드 적용: ${w}x${h} (iOS: ${iosVersion}, 인앱: ${inApp})`);
         } else {
             document.body.classList.add('force-portrait');
-            console.log(`🔄 강제 세로모드 적용: ${w}x${h} (iOS: ${iosVersion}, 인앱: ${inApp})`);
         }
         
         // 실제 높이 계산 및 적용 (구형 iOS는 더 정교하게)
@@ -82,7 +80,6 @@ function forceLayoutControl() {
         if (isOldIOS && inApp && isLandscape) {
             // iPhone 13 이하 + 인앱 + 가로모드: 주소창 높이 추가 차감
             realHeight = window.innerHeight - 80; // 주소창 높이 추정
-            console.log(`⚠️ 구형 iOS 인앱 브라우저 보정: ${realHeight}px`);
         }
         
         document.documentElement.style.setProperty('--real-height', `${realHeight}px`);
