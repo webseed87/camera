@@ -929,7 +929,6 @@ body {
 @media (max-width: 768px) {
     .capture-confirm-content {
         width: 85vw;
-        height: 45vh;
         padding: 25px 20px;
     }
     
