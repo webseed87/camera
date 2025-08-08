@@ -822,7 +822,6 @@ body {
     border-radius: 20px;
     padding: 30px;
     width: 50vw;
-    height: 50vh;
     max-width: 500px;
     max-height: 400px;
     min-width: 300px;
@@ -931,7 +930,6 @@ body {
     .capture-confirm-content {
         width: 85vw;
         height: 45vh;
-        min-height: 280px;
         padding: 25px 20px;
     }
     
