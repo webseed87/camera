@@ -1,4 +1,4 @@
-// 2025-08-06 송주현 새로 작성
+// 2025-08-06 송주현 신규 작성
 let stream = null;
 let capturedImages = [];
 let video, canvas, canvasRaw, canvasThumb, ctx, ctxRaw, ctxThumb;
@@ -152,33 +152,6 @@ if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.us
     if (window.scrollY !== 0) window.scrollTo(0, 0);
   }, 100);
 
-  // 강화된 주소창 숨기기 (모든 브라우저 지원)
-  function hideAddressBar() {
-    // 스크롤을 통한 주소창 숨기기
-    window.scrollTo(0, 1);
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      // viewport 높이 재계산
-      let vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty("--vh", `${vh}px`);
-    }, 50);
-  }
-
-  // 다양한 이벤트에서 주소창 숨기기 시도
-  document.addEventListener('touchstart', hideAddressBar, { passive: true });
-  document.addEventListener('touchend', hideAddressBar, { passive: true });
-  document.addEventListener('click', hideAddressBar, { passive: true });
-  
-  // 페이지 로드 직후와 시간 간격으로 주소창 숨기기
-  setTimeout(hideAddressBar, 100);
-  setTimeout(hideAddressBar, 500);
-  setTimeout(hideAddressBar, 1000);
-  
-  // 방향 변경시에도 주소창 숨기기
-  window.addEventListener('orientationchange', function() {
-    setTimeout(hideAddressBar, 100);
-    setTimeout(hideAddressBar, 500);
-  });
 }
 
 // 모든 스크롤 방지 (데스크탑 포함)
@@ -307,8 +280,74 @@ console.error('resizeCanvas 오류:', error);
 }
 }
 
-// 사진 촬영
+// 촬영 버튼 클릭 시 - 팝업 열기
 function capturePhoto() {
+if (!video.videoWidth || !video.videoHeight) {
+alert('카메라가 준비되지 않았습니다.');
+return;
+}
+
+// 촬영 확인 팝업 열기
+showCaptureConfirm();
+}
+
+// 촬영 확인 팝업 열기
+function showCaptureConfirm() {
+const popup = document.getElementById('captureConfirmPopup');
+const input = document.getElementById('captureNote');
+
+// 팝업 표시
+popup.style.display = 'flex';
+
+// 입력창 초기화 및 포커스
+input.value = '';
+setTimeout(() => {
+  input.focus();
+}, 100);
+
+// 키보드 이벤트 리스너 추가
+function handleKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmCapture();
+    document.removeEventListener('keydown', handleKeydown);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeCaptureConfirm();
+    document.removeEventListener('keydown', handleKeydown);
+  }
+}
+
+document.addEventListener('keydown', handleKeydown);
+
+// 배경 클릭시 팝업 닫기
+popup.addEventListener('click', function(e) {
+  if (e.target === popup) {
+    closeCaptureConfirm();
+    document.removeEventListener('keydown', handleKeydown);
+  }
+});
+}
+
+// 촬영 확인 팝업 닫기
+function closeCaptureConfirm() {
+const popup = document.getElementById('captureConfirmPopup');
+popup.style.display = 'none';
+}
+
+// 촬영 확인 후 실제 촬영 실행
+function confirmCapture() {
+const note = document.getElementById('captureNote').value.trim();
+
+// 팝업 닫기
+closeCaptureConfirm();
+
+// 실제 촬영 실행
+performCapture(note);
+}
+
+// 실제 사진 촬영 함수
+function performCapture(note = '') {
 if (!video.videoWidth || !video.videoHeight) {
 alert('카메라가 준비되지 않았습니다.');
 return;
@@ -359,7 +398,8 @@ const captureInfo = {
   id: Date.now(),
   timestamp: new Date().toLocaleString(),
   fullImage: imageData,
-  thumbnail: thumbData
+  thumbnail: thumbData,
+  note: note // 메모 추가
 };
 
 capturedImages.push(captureInfo);
@@ -372,6 +412,9 @@ updateThumbnail(captureInfo.thumbnail);
 
 // 성공 메시지
 console.log('사진이 촬영되었습니다:', captureInfo.timestamp);
+if (note) {
+  console.log('메모:', note);
+}
 
 // 로컬 스토리지에 저장
 localStorage.setItem('capturedImages', JSON.stringify(capturedImages));
@@ -532,6 +575,7 @@ popup.innerHTML = `
         <img src="${img.thumbnail}" alt="사진 ${index + 1}">
         <div class="photo-item-info">
           <div>${img.timestamp}</div>
+          ${img.note ? `<div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 2px;">📝 ${img.note}</div>` : ''}
         </div>
       </div>
     `).join('')}
@@ -670,37 +714,9 @@ function resetThumbnail() {
     }
 }
 
-// 주소창 숨김 기능 초기화
 function initAddressBarHiding() {
     // 모바일 디바이스에서만 실행
     if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // 강화된 주소창 숨기기 (모든 브라우저 지원)
-        function hideAddressBar() {
-            // 스크롤을 통한 주소창 숨기기
-            window.scrollTo(0, 1);
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-                // viewport 높이 재계산
-                let vh = window.innerHeight * 0.01;
-                document.documentElement.style.setProperty("--vh", `${vh}px`);
-            }, 50);
-        }
-
-        // 다양한 이벤트에서 주소창 숨기기 시도
-        document.addEventListener('touchstart', hideAddressBar, { passive: true });
-        document.addEventListener('touchend', hideAddressBar, { passive: true });
-        document.addEventListener('click', hideAddressBar, { passive: true });
-        
-        // 페이지 로드 직후와 시간 간격으로 주소창 숨기기
-        setTimeout(hideAddressBar, 100);
-        setTimeout(hideAddressBar, 500);
-        setTimeout(hideAddressBar, 1000);
-        
-        // 방향 변경시에도 주소창 숨기기
-        window.addEventListener('orientationchange', function() {
-            setTimeout(hideAddressBar, 100);
-            setTimeout(hideAddressBar, 500);
-        });
 
         // 스크롤 완전 차단
         function preventScroll(e) {

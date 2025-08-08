@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
-<!-- 2025-08-06 송주현 새로 작성 -->
+<!-- 2025-08-06 송주현 신규 작성 -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0, minimum-scale=1.0, shrink-to-fit=no">
@@ -30,12 +30,7 @@
             e.preventDefault();
         }, { passive: false });
         
-        // 주소창 숨기기 시도
-        function hideAddressBar() {
-            window.scrollTo(0, 1);
-            setTimeout(() => window.scrollTo(0, 0), 50);
-        }
-        
+     
         // 페이지 로드 시 한 번만
         window.addEventListener("load", hideAddressBar);
         
@@ -87,6 +82,22 @@
         </div>
             </div>
     
+    </div>
+
+    <!-- 촬영 확인 팝업 -->
+    <div class="capture-confirm-popup" id="captureConfirmPopup">
+        <div class="capture-confirm-content">
+            <div class="capture-confirm-header">
+                <h3>촬영하시겠습니까?</h3>
+            </div>
+            <div class="capture-confirm-input">
+                <input type="text" id="captureNote" placeholder="메모를 입력하세요 (선택사항)" maxlength="100">
+            </div>
+            <div class="capture-confirm-buttons">
+                <button class="confirm-btn cancel" onclick="closeCaptureConfirm()">취소</button>
+                <button class="confirm-btn confirm" onclick="confirmCapture()">확인</button>
+            </div>
+        </div>
     </div>
 
 </body>
